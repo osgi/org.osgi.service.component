@@ -16,9 +16,7 @@
 
 package org.osgi.test.cases.component.junit;
 
-import org.osgi.test.support.signature.SignatureTestCase;
-
-public class ComponentSignatureTestCase extends
- SignatureTestCase {
+public class SignatureTestCase extends
+		org.osgi.test.support.signature.SignatureTestCase {
 	// concrete subclass
 }
