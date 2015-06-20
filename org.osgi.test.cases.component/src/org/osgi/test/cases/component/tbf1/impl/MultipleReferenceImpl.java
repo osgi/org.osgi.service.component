@@ -1,5 +1,5 @@
 /*
- * Copyright (c) OSGi Alliance (2011, 2013). All Rights Reserved.
+ * Copyright (c) OSGi Alliance (2012, 2015). All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,26 @@
  * limitations under the License.
  */
 
-/**
- * Service Component Annotations Package Version 1.3.
- *
- * <p>
- * This package is not used at runtime. Annotated classes are processed by
- * tools to generate Component Descriptions which are used at runtime.
- *
- * @author $Id$
- */
+package org.osgi.test.cases.component.tbf1.impl;
 
-@Version("1.3")
-package org.osgi.service.component.annotations;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.List;
 
-import org.osgi.annotation.versioning.Version;
+import org.osgi.test.cases.component.service.BaseService;
 
+public class MultipleReferenceImpl implements BaseService {
+
+	private volatile List services;
+
+	public Dictionary getProperties() {
+		final Dictionary props = new Hashtable();
+		final List local = services;
+		if (local != null) {
+			props.put("services", local);
+		}
+
+		return props;
+	}
+
+}
