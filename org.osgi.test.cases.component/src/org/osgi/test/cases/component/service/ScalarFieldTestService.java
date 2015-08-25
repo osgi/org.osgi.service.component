@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 1997-2009 ProSyst Software GmbH. All Rights Reserved.
- *
+ * Copyright (c) OSGi Alliance (2015). All Rights Reserved.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,17 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.osgi.test.cases.component.service;
 
-import java.util.Dictionary;
+import java.util.Map;
 
-/**
- * Dummy service to check exporter
- * 
- * @author $Id$
- */
-public interface BaseService {
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.ComponentServiceObjects;
 
-	public Dictionary<String, Object> getProperties();
-  
+public interface ScalarFieldTestService<T> {
+	T getService();
+
+	Object getAssignable();
+
+	ServiceReference<T> getReference();
+
+	ComponentServiceObjects<T> getServiceObjects();
+
+	Map<String, Object> getProperties();
+
+	Map.Entry<Map<String, Object>, T> getTuple();
+
+	int getActivationCount();
+
+	int getModificationCount();
+
+	int getDeactivationCount();
+
 }

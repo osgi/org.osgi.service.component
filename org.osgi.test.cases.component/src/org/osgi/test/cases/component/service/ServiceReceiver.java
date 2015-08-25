@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 1997-2009 ProSyst Software GmbH. All Rights Reserved.
- *
+ * Copyright (c) OSGi Alliance (2015). All Rights Reserved.
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+
 package org.osgi.test.cases.component.service;
 
-import java.util.Dictionary;
+import java.util.List;
+import java.util.Map;
 
-/**
- * Dummy service to check exporter
- * 
- * @author $Id$
- */
-public interface BaseService {
+public interface ServiceReceiver<T> {
+	public List<T> getServices();
 
-	public Dictionary<String, Object> getProperties();
-  
+	public List<Map<String, Object>> getServicesProperies();
 }
