@@ -12,7 +12,7 @@
 		<relativePath>../../pom.xml</relativePath>
 	</parent>
 	<artifactId>org.osgi.spec.service.component</artifactId>
-	<name>OSGi Specification repo for org.osgi.service.component</name>
+	<name>OSGi Declarative Services Specification</name>
 
 	<dependencies>
 		<dependency>
