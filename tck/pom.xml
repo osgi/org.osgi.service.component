@@ -23,7 +23,7 @@
 		<objenesis.version>3.2</objenesis.version>
 		<opentest4j.version>1.3.0</opentest4j.version>
 		<org.apache.felix.configadmin.version>1.9.26</org.apache.felix.configadmin.version>
-		<org.apache.felix.scr.version>2.2.10</org.apache.felix.scr.version>
+		<org.apache.felix.scr.version>2.2.18</org.apache.felix.scr.version>
 		<org.eclipse.equinox.coordinator.version>1.3.500</org.eclipse.equinox.coordinator.version>
 		<org.eclipse.osgi.version>3.18.100</org.eclipse.osgi.version>
 		<org.osgi.framework.version>1.10.0</org.osgi.framework.version>
