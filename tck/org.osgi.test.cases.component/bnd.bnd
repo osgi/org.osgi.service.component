@@ -3,7 +3,7 @@
 Bundle-Description: Declarative Services Test Case
 -debug: true
 
--conditionalpackage					= org.osgi.test.support.*
+-conditionalpackage					= org.osgi.test.support.*, org.osgi.tck.signature.*
 -privatepackage						=  \
 	${p}.junit
 Export-Package						= \
