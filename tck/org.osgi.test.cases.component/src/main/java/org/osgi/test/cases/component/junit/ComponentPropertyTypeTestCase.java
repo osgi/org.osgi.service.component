@@ -18,11 +18,20 @@
 
 package org.osgi.test.cases.component.junit;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
+
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Arrays;
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Filter;
 import org.osgi.service.component.ComponentConstants;
@@ -33,23 +42,30 @@ import org.osgi.test.cases.component.types.AnnotationMember;
 import org.osgi.test.cases.component.types.ClassMember;
 import org.osgi.test.cases.component.types.Coercion;
 import org.osgi.test.cases.component.types.EnumMember;
-import org.osgi.test.cases.component.types.NameMapping;
 import org.osgi.test.cases.component.types.NameMapping14;
+import org.osgi.test.cases.component.types.NameMapping;
 import org.osgi.test.cases.component.types.SingleElement;
 import org.osgi.test.cases.component.types.TestEnum;
-import org.osgi.test.support.OSGiTestCase;
+import org.osgi.test.common.annotation.InjectBundleContext;
+import org.osgi.test.common.annotation.InjectBundleInstaller;
+import org.osgi.test.common.install.BundleInstaller;
 import org.osgi.util.tracker.ServiceTracker;
 
-public class ComponentPropertyTypeTestCase extends OSGiTestCase {
+public class ComponentPropertyTypeTestCase {
+
+	@InjectBundleContext
+	BundleContext		context;
+
+	@InjectBundleInstaller
+	BundleInstaller		installer;
 	private static int SLEEP = 1000;
 
 	public ComponentPropertyTypeTestCase() {
 	}
 
-	@Override
-	protected void setUp() throws Exception {
-		super.setUp();
-		String sleepTimeString = getProperty("osgi.tc.component.sleeptime");
+	@BeforeEach
+	public void setUp() throws Exception {
+		String sleepTimeString = AccessController.doPrivileged((PrivilegedAction<String>) () -> context.getProperty("osgi.tc.component.sleeptime"));
 		int sleepTime = SLEEP;
 		if (sleepTimeString != null) {
 			try {
@@ -69,38 +85,38 @@ public class ComponentPropertyTypeTestCase extends OSGiTestCase {
 		}
 	}
 
-	@Override
-	protected void tearDown() throws Exception {
-		super.tearDown();
+	@AfterEach
+	public void tearDown() throws Exception {
 	}
 
+	@Test
 	public void testNameMapping130() throws Exception {
-		Bundle tb26 = install("tb26.jar");
-		assertNotNull("tb26 failed to install", tb26);
+		Bundle tb26 = installer.installBundle("tb26.jar", false);
+		assertThat(tb26).as("tb26 failed to install").isNotNull();
 		try {
 			tb26.start();
 
-			Filter providerFilter = getContext().createFilter("(&(" + Constants.OBJECTCLASS + "="
+			Filter providerFilter = context.createFilter("(&(" + Constants.OBJECTCLASS + "="
 					+ ObjectProvider1.class.getName() + ")(" + ComponentConstants.COMPONENT_NAME
 					+ "=org.osgi.test.cases.component.tb26.NameMappingComponent))");
 			ServiceTracker<ObjectProvider1<NameMapping>, ObjectProvider1<NameMapping>> providerTracker = new ServiceTracker<ObjectProvider1<NameMapping>, ObjectProvider1<NameMapping>>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				providerTracker.open();
 				ObjectProvider1<NameMapping> p = providerTracker.waitForService(SLEEP * 3);
-				assertNotNull("missing provider", p);
+				assertThat(p).as("missing provider").isNotNull();
 				NameMapping config = p.get1();
-				assertNotNull("missing config", config);
+				assertThat(config).as("missing config").isNotNull();
 
-				assertEquals("property has wrong value", "xml/myProperty143", config.myProperty143());
-				assertEquals("property has wrong value", "xml/new", config.$new());
-				assertEquals("property has wrong value", "xml/my$prop", config.my$$prop());
-				assertEquals("property has wrong value", "xml/dot.prop", config.dot_prop());
-				assertEquals("property has wrong value", "xml/.secret", config._secret());
-				assertEquals("property has wrong value", "xml/another_prop", config.another__prop());
-				assertEquals("property has wrong value", "xml/three_.prop", config.three___prop());
-				assertEquals("property has wrong value", "xml/four._prop", config.four_$__prop());
-				assertEquals("property has wrong value", "xml/five..prop", config.five_$_prop());
+				assertThat(config.myProperty143()).as("property has wrong value").isEqualTo("xml/myProperty143");
+				assertThat(config.$new()).as("property has wrong value").isEqualTo("xml/new");
+				assertThat(config.my$$prop()).as("property has wrong value").isEqualTo("xml/my$prop");
+				assertThat(config.dot_prop()).as("property has wrong value").isEqualTo("xml/dot.prop");
+				assertThat(config._secret()).as("property has wrong value").isEqualTo("xml/.secret");
+				assertThat(config.another__prop()).as("property has wrong value").isEqualTo("xml/another_prop");
+				assertThat(config.three___prop()).as("property has wrong value").isEqualTo("xml/three_.prop");
+				assertThat(config.four_$__prop()).as("property has wrong value").isEqualTo("xml/four._prop");
+				assertThat(config.five_$_prop()).as("property has wrong value").isEqualTo("xml/five..prop");
 
 			} finally {
 				providerTracker.close();
@@ -110,47 +126,38 @@ public class ComponentPropertyTypeTestCase extends OSGiTestCase {
 		}
 	}
 
+	@Test
 	public void testNameMapping140() throws Exception {
-		Bundle tb26 = install("tb26.jar");
-		assertNotNull("tb26 failed to install", tb26);
+		Bundle tb26 = installer.installBundle("tb26.jar", false);
+		assertThat(tb26).as("tb26 failed to install").isNotNull();
 		try {
 			tb26.start();
 
-			Filter providerFilter = getContext().createFilter("(&("
+			Filter providerFilter = context.createFilter("(&("
 					+ Constants.OBJECTCLASS + "="
 					+ ObjectProvider1.class.getName() + ")("
 					+ ComponentConstants.COMPONENT_NAME
 					+ "=org.osgi.test.cases.component.tb26.NameMappingComponent14))");
 			ServiceTracker<ObjectProvider1<NameMapping14>,ObjectProvider1<NameMapping14>> providerTracker = new ServiceTracker<ObjectProvider1<NameMapping14>,ObjectProvider1<NameMapping14>>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				providerTracker.open();
 				ObjectProvider1<NameMapping14> p = providerTracker
 						.waitForService(SLEEP * 3);
-				assertNotNull("missing provider", p);
+				assertThat(p).as("missing provider").isNotNull();
 				NameMapping14 config = p.get1();
-				assertNotNull("missing config", config);
+				assertThat(config).as("missing config").isNotNull();
 
-				assertEquals("property has wrong value", "xml/myProperty143",
-						config.myProperty143());
-				assertEquals("property has wrong value", "xml/new",
-						config.$new());
-				assertEquals("property has wrong value", "xml/my$prop",
-						config.my$$prop());
-				assertEquals("property has wrong value", "xml/dot.prop",
-						config.dot_prop());
-				assertEquals("property has wrong value", "xml/another_prop",
-						config.another__prop());
-				assertEquals("property has wrong value", "xml/three_.prop",
-						config.three___prop());
-				assertEquals("property has wrong value", "xml/four._prop",
-						config.four_$__prop());
-				assertEquals("property has wrong value", "xml/five..prop",
-						config.five_$_prop());
-				assertEquals("property has wrong value", "xml/six-prop",
-						config.six$_$prop());
-				assertEquals("property has wrong value", "xml/seven$.prop",
-						config.seven$$_$prop());
+				assertThat(config.myProperty143()).as("property has wrong value").isEqualTo("xml/myProperty143");
+				assertThat(config.$new()).as("property has wrong value").isEqualTo("xml/new");
+				assertThat(config.my$$prop()).as("property has wrong value").isEqualTo("xml/my$prop");
+				assertThat(config.dot_prop()).as("property has wrong value").isEqualTo("xml/dot.prop");
+				assertThat(config.another__prop()).as("property has wrong value").isEqualTo("xml/another_prop");
+				assertThat(config.three___prop()).as("property has wrong value").isEqualTo("xml/three_.prop");
+				assertThat(config.four_$__prop()).as("property has wrong value").isEqualTo("xml/four._prop");
+				assertThat(config.five_$_prop()).as("property has wrong value").isEqualTo("xml/five..prop");
+				assertThat(config.six$_$prop()).as("property has wrong value").isEqualTo("xml/six-prop");
+				assertThat(config.seven$$_$prop()).as("property has wrong value").isEqualTo("xml/seven$.prop");
 
 			} finally {
 				providerTracker.close();
@@ -160,28 +167,28 @@ public class ComponentPropertyTypeTestCase extends OSGiTestCase {
 		}
 	}
 
+	@Test
 	public void testSingleElement140() throws Exception {
-		Bundle tb26 = install("tb26.jar");
-		assertNotNull("tb26 failed to install", tb26);
+		Bundle tb26 = installer.installBundle("tb26.jar", false);
+		assertThat(tb26).as("tb26 failed to install").isNotNull();
 		try {
 			tb26.start();
 
-			Filter providerFilter = getContext().createFilter("(&("
+			Filter providerFilter = context.createFilter("(&("
 					+ Constants.OBJECTCLASS + "="
 					+ ObjectProvider1.class.getName() + ")("
 					+ ComponentConstants.COMPONENT_NAME
 					+ "=org.osgi.test.cases.component.tb26.SingleElementComponent))");
 			ServiceTracker<ObjectProvider1<SingleElement>,ObjectProvider1<SingleElement>> providerTracker = new ServiceTracker<ObjectProvider1<SingleElement>,ObjectProvider1<SingleElement>>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				providerTracker.open();
 				ObjectProvider1<SingleElement> p = providerTracker
 						.waitForService(SLEEP * 3);
-				assertNotNull("missing provider", p);
+				assertThat(p).as("missing provider").isNotNull();
 				SingleElement config = p.get1();
-				assertNotNull("missing config", config);
-				assertEquals("property has wrong value", "xml/single",
-						config.value());
+				assertThat(config).as("missing config").isNotNull();
+				assertThat(config.value()).as("property has wrong value").isEqualTo("xml/single");
 
 			} finally {
 				providerTracker.close();
@@ -191,31 +198,32 @@ public class ComponentPropertyTypeTestCase extends OSGiTestCase {
 		}
 	}
 
+	@Test
 	public void testAnnotationMember130() throws Exception {
-		Bundle tb26 = install("tb26.jar");
-		assertNotNull("tb26 failed to install", tb26);
+		Bundle tb26 = installer.installBundle("tb26.jar", false);
+		assertThat(tb26).as("tb26 failed to install").isNotNull();
 		try {
 			tb26.start();
 
-			Filter providerFilter = getContext().createFilter("(&(" + Constants.OBJECTCLASS + "="
+			Filter providerFilter = context.createFilter("(&(" + Constants.OBJECTCLASS + "="
 					+ ObjectProvider1.class.getName() + ")(" + ComponentConstants.COMPONENT_NAME
 					+ "=org.osgi.test.cases.component.tb26.AnnotationMemberComponent))");
 			ServiceTracker<ObjectProvider1<AnnotationMember>, ObjectProvider1<AnnotationMember>> providerTracker = new ServiceTracker<ObjectProvider1<AnnotationMember>, ObjectProvider1<AnnotationMember>>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				providerTracker.open();
 				ObjectProvider1<AnnotationMember> p = providerTracker.waitForService(SLEEP * 3);
-				assertNotNull("missing provider", p);
+				assertThat(p).as("missing provider").isNotNull();
 				AnnotationMember config = p.get1();
-				assertNotNull("missing config", config);
+				assertThat(config).as("missing config").isNotNull();
 
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.error());
+					assertThat(config.error()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.errors());
+					assertThat(config.errors()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
@@ -228,31 +236,32 @@ public class ComponentPropertyTypeTestCase extends OSGiTestCase {
 		}
 	}
 
+	@Test
 	public void testClassMember130() throws Exception {
-		Bundle tb26 = install("tb26.jar");
-		assertNotNull("tb26 failed to install", tb26);
+		Bundle tb26 = installer.installBundle("tb26.jar", false);
+		assertThat(tb26).as("tb26 failed to install").isNotNull();
 		try {
 			tb26.start();
 
-			Filter providerFilter = getContext().createFilter("(&(" + Constants.OBJECTCLASS + "="
+			Filter providerFilter = context.createFilter("(&(" + Constants.OBJECTCLASS + "="
 					+ ObjectProvider1.class.getName() + ")(" + ComponentConstants.COMPONENT_NAME
 					+ "=org.osgi.test.cases.component.tb26.ClassMemberComponent))");
 			ServiceTracker<ObjectProvider1<ClassMember>, ObjectProvider1<ClassMember>> providerTracker = new ServiceTracker<ObjectProvider1<ClassMember>, ObjectProvider1<ClassMember>>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				providerTracker.open();
 				ObjectProvider1<ClassMember> p = providerTracker.waitForService(SLEEP * 3);
-				assertNotNull("missing provider", p);
+				assertThat(p).as("missing provider").isNotNull();
 				ClassMember config = p.get1();
-				assertNotNull("missing config", config);
+				assertThat(config).as("missing config").isNotNull();
 
 				Class<?> single = config.single();
-				assertSame("property has wrong value", ClassMember.class, single);
+				assertThat(single).as("property has wrong value").isSameAs(ClassMember.class);
 				Class<?>[] multiple = config.multiple();
-				assertNotNull("array null", multiple);
-				assertEquals("array wrong length", 2, multiple.length);
-				assertSame("property has wrong value", p.getClass(), multiple[0]);
-				assertSame("property has wrong value", ClassMember.class, multiple[1]);
+				assertThat(multiple).as("array null").isNotNull();
+				assertThat(multiple.length).as("array wrong length").isEqualTo(2);
+				assertThat(multiple[0]).as("property has wrong value").isSameAs(p.getClass());
+				assertThat(multiple[1]).as("property has wrong value").isSameAs(ClassMember.class);
 			} finally {
 				providerTracker.close();
 			}
@@ -261,31 +270,32 @@ public class ComponentPropertyTypeTestCase extends OSGiTestCase {
 		}
 	}
 
+	@Test
 	public void testEnumMember130() throws Exception {
-		Bundle tb26 = install("tb26.jar");
-		assertNotNull("tb26 failed to install", tb26);
+		Bundle tb26 = installer.installBundle("tb26.jar", false);
+		assertThat(tb26).as("tb26 failed to install").isNotNull();
 		try {
 			tb26.start();
 
-			Filter providerFilter = getContext().createFilter("(&(" + Constants.OBJECTCLASS + "="
+			Filter providerFilter = context.createFilter("(&(" + Constants.OBJECTCLASS + "="
 					+ ObjectProvider1.class.getName() + ")(" + ComponentConstants.COMPONENT_NAME
 					+ "=org.osgi.test.cases.component.tb26.EnumMemberComponent))");
 			ServiceTracker<ObjectProvider1<EnumMember>, ObjectProvider1<EnumMember>> providerTracker = new ServiceTracker<ObjectProvider1<EnumMember>, ObjectProvider1<EnumMember>>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				providerTracker.open();
 				ObjectProvider1<EnumMember> p = providerTracker.waitForService(SLEEP * 3);
-				assertNotNull("missing provider", p);
+				assertThat(p).as("missing provider").isNotNull();
 				EnumMember config = p.get1();
-				assertNotNull("missing config", config);
+				assertThat(config).as("missing config").isNotNull();
 
 				TestEnum single = config.single();
-				assertSame("property has wrong value", TestEnum.ITEM1, single);
+				assertThat(single).as("property has wrong value").isSameAs(TestEnum.ITEM1);
 				TestEnum[] multiple = config.multiple();
-				assertNotNull("array null", multiple);
-				assertEquals("array wrong length", 2, multiple.length);
-				assertSame("property has wrong value", TestEnum.AnotherItem, multiple[0]);
-				assertSame("property has wrong value", TestEnum.ITEM1, multiple[1]);
+				assertThat(multiple).as("array null").isNotNull();
+				assertThat(multiple.length).as("array wrong length").isEqualTo(2);
+				assertThat(multiple[0]).as("property has wrong value").isSameAs(TestEnum.AnotherItem);
+				assertThat(multiple[1]).as("property has wrong value").isSameAs(TestEnum.ITEM1);
 			} finally {
 				providerTracker.close();
 			}
@@ -294,22 +304,23 @@ public class ComponentPropertyTypeTestCase extends OSGiTestCase {
 		}
 	}
 
+	@Test
 	public void testCoercion130() throws Exception {
-		Bundle tb26 = install("tb26.jar");
-		assertNotNull("tb26 failed to install", tb26);
+		Bundle tb26 = installer.installBundle("tb26.jar", false);
+		assertThat(tb26).as("tb26 failed to install").isNotNull();
 		try {
 			tb26.start();
 
-			Filter providerFilter = getContext().createFilter("(&(" + Constants.OBJECTCLASS + "="
+			Filter providerFilter = context.createFilter("(&(" + Constants.OBJECTCLASS + "="
 					+ ComponentFactory.class.getName() + ")(" + ComponentConstants.COMPONENT_FACTORY
 					+ "=org.osgi.test.cases.component.tb26.CoercionComponent))");
 			ServiceTracker<ComponentFactory<ObjectProvider1<Coercion>>,ComponentFactory<ObjectProvider1<Coercion>>> providerTracker = new ServiceTracker<>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				providerTracker.open();
 				ComponentFactory<ObjectProvider1<Coercion>> f = providerTracker
 						.waitForService(SLEEP * 3);
-				assertNotNull("missing factory", f);
+				assertThat(f).as("missing factory").isNotNull();
 				Dictionary<String, Object> props = new Hashtable<String, Object>();
 				props.put("stringCollection", Arrays.asList("list", "second"));
 				props.put("booleanCollection", Arrays.asList(Boolean.TRUE, Boolean.TRUE));
@@ -327,263 +338,263 @@ public class ComponentPropertyTypeTestCase extends OSGiTestCase {
 						TestEnum.AnotherItem.name()));
 				props.put("int$Collection", Arrays.asList(Integer.valueOf(64), Integer.valueOf(0)));
 				ObjectProvider1<Coercion> p = f.newInstance(props).getInstance();
-				assertNotNull("missing provider", p);
+				assertThat(p).as("missing provider").isNotNull();
 				Coercion config = p.get1();
-				assertNotNull("missing config", config);
+				assertThat(config).as("missing config").isNotNull();
 
-				assertEquals("property has wrong value", "xml/stringString", config.stringString());
-				assertEquals("property has wrong value", "true", config.stringBoolean());
-				assertEquals("property has wrong value", "@", config.stringCharacter());
-				assertEquals("property has wrong value", "2", config.stringByte());
-				assertEquals("property has wrong value", "1024", config.stringShort());
-				assertEquals("property has wrong value", "123456", config.stringInteger());
-				assertEquals("property has wrong value", "9876543210", config.stringLong());
-				assertEquals("property has wrong value", "3.14", config.stringFloat());
-				assertEquals("property has wrong value", "2.1", config.stringDouble());
-				assertEquals("property has wrong value", "list", config.stringCollection());
-				assertEquals("property has wrong value", "true", config.stringArray());
-				assertNull("property has wrong value", config.stringNone());
+				assertThat(config.stringString()).as("property has wrong value").isEqualTo("xml/stringString");
+				assertThat(config.stringBoolean()).as("property has wrong value").isEqualTo("true");
+				assertThat(config.stringCharacter()).as("property has wrong value").isEqualTo("@");
+				assertThat(config.stringByte()).as("property has wrong value").isEqualTo("2");
+				assertThat(config.stringShort()).as("property has wrong value").isEqualTo("1024");
+				assertThat(config.stringInteger()).as("property has wrong value").isEqualTo("123456");
+				assertThat(config.stringLong()).as("property has wrong value").isEqualTo("9876543210");
+				assertThat(config.stringFloat()).as("property has wrong value").isEqualTo("3.14");
+				assertThat(config.stringDouble()).as("property has wrong value").isEqualTo("2.1");
+				assertThat(config.stringCollection()).as("property has wrong value").isEqualTo("list");
+				assertThat(config.stringArray()).as("property has wrong value").isEqualTo("true");
+				assertThat(config.stringNone()).as("property has wrong value").isNull();
 
-				assertTrue("property has wrong value", config.booleanString());
-				assertTrue("property has wrong value", config.booleanBoolean());
-				assertFalse("property has wrong value", config.booleanCharacter());
-				assertTrue("property has wrong value", config.booleanByte());
-				assertTrue("property has wrong value", config.booleanShort());
-				assertTrue("property has wrong value", config.booleanInteger());
-				assertTrue("property has wrong value", config.booleanLong());
-				assertTrue("property has wrong value", config.booleanFloat());
-				assertFalse("property has wrong value", config.booleanDouble());
-				assertTrue("property has wrong value", config.booleanCollection());
-				assertTrue("property has wrong value", config.booleanArray());
-				assertFalse("property has wrong value", config.booleanNone());
+				assertThat(config.booleanString()).as("property has wrong value").isTrue();
+				assertThat(config.booleanBoolean()).as("property has wrong value").isTrue();
+				assertThat(config.booleanCharacter()).as("property has wrong value").isFalse();
+				assertThat(config.booleanByte()).as("property has wrong value").isTrue();
+				assertThat(config.booleanShort()).as("property has wrong value").isTrue();
+				assertThat(config.booleanInteger()).as("property has wrong value").isTrue();
+				assertThat(config.booleanLong()).as("property has wrong value").isTrue();
+				assertThat(config.booleanFloat()).as("property has wrong value").isTrue();
+				assertThat(config.booleanDouble()).as("property has wrong value").isFalse();
+				assertThat(config.booleanCollection()).as("property has wrong value").isTrue();
+				assertThat(config.booleanArray()).as("property has wrong value").isTrue();
+				assertThat(config.booleanNone()).as("property has wrong value").isFalse();
 
-				assertEquals("property has wrong value", '6', config.charString());
-				assertEquals("property has wrong value", (char) 0, config.charStringEmpty());
-				assertEquals("property has wrong value", (char) 1, config.charBooleanTrue());
-				assertEquals("property has wrong value", (char) 0, config.charBooleanFalse());
-				assertEquals("property has wrong value", '@', config.charCharacter());
-				assertEquals("property has wrong value", (char) 2, config.charByte());
-				assertEquals("property has wrong value", (char) 1034, config.charShort());
-				assertEquals("property has wrong value", (char) 123456, config.charInteger());
-				assertEquals("property has wrong value", (char) 9876543210L, config.charLong());
-				assertEquals("property has wrong value", (char) 3.14F, config.charFloat());
-				assertEquals("property has wrong value", (char) 2.1D, config.charDouble());
-				assertEquals("property has wrong value", '@', config.charCollection());
-				assertEquals("property has wrong value", (char) 1, config.charArray());
-				assertEquals("property has wrong value", (char) 0, config.charNone());
+				assertThat(config.charString()).as("property has wrong value").isEqualTo('6');
+				assertThat(config.charStringEmpty()).as("property has wrong value").isEqualTo((char) 0);
+				assertThat(config.charBooleanTrue()).as("property has wrong value").isEqualTo((char) 1);
+				assertThat(config.charBooleanFalse()).as("property has wrong value").isEqualTo((char) 0);
+				assertThat(config.charCharacter()).as("property has wrong value").isEqualTo('@');
+				assertThat(config.charByte()).as("property has wrong value").isEqualTo((char) 2);
+				assertThat(config.charShort()).as("property has wrong value").isEqualTo((char) 1034);
+				assertThat(config.charInteger()).as("property has wrong value").isEqualTo((char) 123456);
+				assertThat(config.charLong()).as("property has wrong value").isEqualTo((char) 9876543210L);
+				assertThat(config.charFloat()).as("property has wrong value").isEqualTo((char) 3.14F);
+				assertThat(config.charDouble()).as("property has wrong value").isEqualTo((char) 2.1D);
+				assertThat(config.charCollection()).as("property has wrong value").isEqualTo('@');
+				assertThat(config.charArray()).as("property has wrong value").isEqualTo((char) 1);
+				assertThat(config.charNone()).as("property has wrong value").isEqualTo((char) 0);
 
-				assertEquals("property has wrong value", (byte) 64, config.byteString());
-				assertEquals("property has wrong value", (byte) 1, config.byteBooleanTrue());
-				assertEquals("property has wrong value", (byte) 0, config.byteBooleanFalse());
-				assertEquals("property has wrong value", (byte) 64, config.byteCharacter());
-				assertEquals("property has wrong value", (byte) 2, config.byteByte());
-				assertEquals("property has wrong value", (byte) 1034, config.byteShort());
-				assertEquals("property has wrong value", (byte) 123456, config.byteInteger());
-				assertEquals("property has wrong value", (byte) 9876543210L, config.byteLong());
-				assertEquals("property has wrong value", (byte) 3.14F, config.byteFloat());
-				assertEquals("property has wrong value", (byte) 2.1D, config.byteDouble());
-				assertEquals("property has wrong value", (byte) 64, config.byteCollection());
-				assertEquals("property has wrong value", (byte) 1, config.byteArray());
-				assertEquals("property has wrong value", (byte) 0, config.byteNone());
+				assertThat(config.byteString()).as("property has wrong value").isEqualTo((byte) 64);
+				assertThat(config.byteBooleanTrue()).as("property has wrong value").isOne();
+				assertThat(config.byteBooleanFalse()).as("property has wrong value").isZero();
+				assertThat(config.byteCharacter()).as("property has wrong value").isEqualTo((byte) 64);
+				assertThat(config.byteByte()).as("property has wrong value").isEqualTo((byte) 2);
+				assertThat(config.byteShort()).as("property has wrong value").isEqualTo((byte) 1034);
+				assertThat(config.byteInteger()).as("property has wrong value").isEqualTo((byte) 123456);
+				assertThat(config.byteLong()).as("property has wrong value").isEqualTo((byte) 9876543210L);
+				assertThat(config.byteFloat()).as("property has wrong value").isEqualTo((byte) 3.14F);
+				assertThat(config.byteDouble()).as("property has wrong value").isEqualTo((byte) 2.1D);
+				assertThat(config.byteCollection()).as("property has wrong value").isEqualTo((byte) 64);
+				assertThat(config.byteArray()).as("property has wrong value").isOne();
+				assertThat(config.byteNone()).as("property has wrong value").isZero();
 
-				assertEquals("property has wrong value", (short) 64, config.shortString());
-				assertEquals("property has wrong value", (short) 1, config.shortBooleanTrue());
-				assertEquals("property has wrong value", (short) 0, config.shortBooleanFalse());
-				assertEquals("property has wrong value", (short) 64, config.shortCharacter());
-				assertEquals("property has wrong value", (short) 2, config.shortByte());
-				assertEquals("property has wrong value", (short) 1034, config.shortShort());
-				assertEquals("property has wrong value", (short) 123456, config.shortInteger());
-				assertEquals("property has wrong value", (short) 9876543210L, config.shortLong());
-				assertEquals("property has wrong value", (short) 3.14F, config.shortFloat());
-				assertEquals("property has wrong value", (short) 2.1D, config.shortDouble());
-				assertEquals("property has wrong value", (short) 64, config.shortCollection());
-				assertEquals("property has wrong value", (short) 1, config.shortArray());
-				assertEquals("property has wrong value", (short) 0, config.shortNone());
+				assertThat(config.shortString()).as("property has wrong value").isEqualTo((short) 64);
+				assertThat(config.shortBooleanTrue()).as("property has wrong value").isOne();
+				assertThat(config.shortBooleanFalse()).as("property has wrong value").isZero();
+				assertThat(config.shortCharacter()).as("property has wrong value").isEqualTo((short) 64);
+				assertThat(config.shortByte()).as("property has wrong value").isEqualTo((short) 2);
+				assertThat(config.shortShort()).as("property has wrong value").isEqualTo((short) 1034);
+				assertThat(config.shortInteger()).as("property has wrong value").isEqualTo((short) 123456);
+				assertThat(config.shortLong()).as("property has wrong value").isEqualTo((short) 9876543210L);
+				assertThat(config.shortFloat()).as("property has wrong value").isEqualTo((short) 3.14F);
+				assertThat(config.shortDouble()).as("property has wrong value").isEqualTo((short) 2.1D);
+				assertThat(config.shortCollection()).as("property has wrong value").isEqualTo((short) 64);
+				assertThat(config.shortArray()).as("property has wrong value").isOne();
+				assertThat(config.shortNone()).as("property has wrong value").isZero();
 
-				assertEquals("property has wrong value", 64, config.intString());
-				assertEquals("property has wrong value", 1, config.intBooleanTrue());
-				assertEquals("property has wrong value", 0, config.intBooleanFalse());
-				assertEquals("property has wrong value", 64, config.intCharacter());
-				assertEquals("property has wrong value", 2, config.intByte());
-				assertEquals("property has wrong value", 1034, config.intShort());
-				assertEquals("property has wrong value", 123456, config.intInteger());
-				assertEquals("property has wrong value", (int) 9876543210L, config.intLong());
-				assertEquals("property has wrong value", (int) 3.14F, config.intFloat());
-				assertEquals("property has wrong value", (int) 2.1D, config.intDouble());
-				assertEquals("property has wrong value", 64, config.intCollection());
-				assertEquals("property has wrong value", 1, config.intArray());
-				assertEquals("property has wrong value", 0, config.intNone());
+				assertThat(config.intString()).as("property has wrong value").isEqualTo(64);
+				assertThat(config.intBooleanTrue()).as("property has wrong value").isOne();
+				assertThat(config.intBooleanFalse()).as("property has wrong value").isZero();
+				assertThat(config.intCharacter()).as("property has wrong value").isEqualTo(64);
+				assertThat(config.intByte()).as("property has wrong value").isEqualTo(2);
+				assertThat(config.intShort()).as("property has wrong value").isEqualTo(1034);
+				assertThat(config.intInteger()).as("property has wrong value").isEqualTo(123456);
+				assertThat(config.intLong()).as("property has wrong value").isEqualTo((int) 9876543210L);
+				assertThat(config.intFloat()).as("property has wrong value").isEqualTo((int) 3.14F);
+				assertThat(config.intDouble()).as("property has wrong value").isEqualTo((int) 2.1D);
+				assertThat(config.intCollection()).as("property has wrong value").isEqualTo(64);
+				assertThat(config.intArray()).as("property has wrong value").isOne();
+				assertThat(config.intNone()).as("property has wrong value").isZero();
 
-				assertEquals("property has wrong value", 64, config.longString());
-				assertEquals("property has wrong value", 1, config.longBooleanTrue());
-				assertEquals("property has wrong value", 0, config.longBooleanFalse());
-				assertEquals("property has wrong value", 64, config.longCharacter());
-				assertEquals("property has wrong value", 2, config.longByte());
-				assertEquals("property has wrong value", 1034, config.longShort());
-				assertEquals("property has wrong value", 123456, config.longInteger());
-				assertEquals("property has wrong value", 9876543210L, config.longLong());
-				assertEquals("property has wrong value", (long) 3.14F, config.longFloat());
-				assertEquals("property has wrong value", (long) 2.1D, config.longDouble());
-				assertEquals("property has wrong value", 64, config.longCollection());
-				assertEquals("property has wrong value", 1, config.longArray());
-				assertEquals("property has wrong value", 0, config.longNone());
+				assertThat(config.longString()).as("property has wrong value").isEqualTo(64);
+				assertThat(config.longBooleanTrue()).as("property has wrong value").isOne();
+				assertThat(config.longBooleanFalse()).as("property has wrong value").isZero();
+				assertThat(config.longCharacter()).as("property has wrong value").isEqualTo(64);
+				assertThat(config.longByte()).as("property has wrong value").isEqualTo(2);
+				assertThat(config.longShort()).as("property has wrong value").isEqualTo(1034);
+				assertThat(config.longInteger()).as("property has wrong value").isEqualTo(123456);
+				assertThat(config.longLong()).as("property has wrong value").isEqualTo(9876543210L);
+				assertThat(config.longFloat()).as("property has wrong value").isEqualTo((long) 3.14F);
+				assertThat(config.longDouble()).as("property has wrong value").isEqualTo((long) 2.1D);
+				assertThat(config.longCollection()).as("property has wrong value").isEqualTo(64);
+				assertThat(config.longArray()).as("property has wrong value").isOne();
+				assertThat(config.longNone()).as("property has wrong value").isZero();
 
 				final float deltaFloat = 0x1.0p-126f;
-				assertEquals("property has wrong value", 64.3F, config.floatString(), deltaFloat);
-				assertEquals("property has wrong value", 1, config.floatBooleanTrue(), deltaFloat);
-				assertEquals("property has wrong value", 0, config.floatBooleanFalse(), deltaFloat);
-				assertEquals("property has wrong value", 64, config.floatCharacter(), deltaFloat);
-				assertEquals("property has wrong value", 2, config.floatByte(), deltaFloat);
-				assertEquals("property has wrong value", 1034, config.floatShort(), deltaFloat);
-				assertEquals("property has wrong value", 123456, config.floatInteger(), deltaFloat);
-				assertEquals("property has wrong value", 9876543210L, config.floatLong(), deltaFloat);
-				assertEquals("property has wrong value", 3.14F, config.floatFloat(), deltaFloat);
-				assertEquals("property has wrong value", (float) 2.1D, config.floatDouble(), deltaFloat);
-				assertEquals("property has wrong value", 64.3F, config.floatCollection(), deltaFloat);
-				assertEquals("property has wrong value", 1F, config.floatArray(), deltaFloat);
-				assertEquals("property has wrong value", 0F, config.floatNone(), deltaFloat);
+				assertThat(config.floatString()).as("property has wrong value").isCloseTo(64.3F, within(deltaFloat));
+				assertThat(config.floatBooleanTrue()).as("property has wrong value").isCloseTo(1, within(deltaFloat));
+				assertThat(config.floatBooleanFalse()).as("property has wrong value").isCloseTo(0, within(deltaFloat));
+				assertThat(config.floatCharacter()).as("property has wrong value").isCloseTo(64, within(deltaFloat));
+				assertThat(config.floatByte()).as("property has wrong value").isCloseTo(2, within(deltaFloat));
+				assertThat(config.floatShort()).as("property has wrong value").isCloseTo(1034, within(deltaFloat));
+				assertThat(config.floatInteger()).as("property has wrong value").isCloseTo(123456, within(deltaFloat));
+				assertThat(config.floatLong()).as("property has wrong value").isCloseTo(9876543210L, within(deltaFloat));
+				assertThat(config.floatFloat()).as("property has wrong value").isCloseTo(3.14F, within(deltaFloat));
+				assertThat(config.floatDouble()).as("property has wrong value").isCloseTo((float) 2.1D, within(deltaFloat));
+				assertThat(config.floatCollection()).as("property has wrong value").isCloseTo(64.3F, within(deltaFloat));
+				assertThat(config.floatArray()).as("property has wrong value").isCloseTo(1F, within(deltaFloat));
+				assertThat(config.floatNone()).as("property has wrong value").isCloseTo(0F, within(deltaFloat));
 
 				final double deltaDouble = 0x1.0p-1022;
-				assertEquals("property has wrong value", 64.3D, config.doubleString(), deltaDouble);
-				assertEquals("property has wrong value", 1, config.doubleBooleanTrue(), deltaDouble);
-				assertEquals("property has wrong value", 0, config.doubleBooleanFalse(), deltaDouble);
-				assertEquals("property has wrong value", 64, config.doubleCharacter(), deltaDouble);
-				assertEquals("property has wrong value", 2, config.doubleByte(), deltaDouble);
-				assertEquals("property has wrong value", 1034, config.doubleShort(), deltaDouble);
-				assertEquals("property has wrong value", 123456, config.doubleInteger(), deltaDouble);
-				assertEquals("property has wrong value", 9876543210L, config.doubleLong(), deltaDouble);
-				assertEquals("property has wrong value", 3.14F, config.doubleFloat(), deltaDouble);
-				assertEquals("property has wrong value", 2.1D, config.doubleDouble(), deltaDouble);
-				assertEquals("property has wrong value", 64.3D, config.doubleCollection(), deltaDouble);
-				assertEquals("property has wrong value", 1D, config.doubleArray(), deltaDouble);
-				assertEquals("property has wrong value", 0D, config.doubleNone(), deltaDouble);
+				assertThat(config.doubleString()).as("property has wrong value").isCloseTo(64.3D, within(deltaDouble));
+				assertThat(config.doubleBooleanTrue()).as("property has wrong value").isCloseTo(1, within(deltaDouble));
+				assertThat(config.doubleBooleanFalse()).as("property has wrong value").isCloseTo(0, within(deltaDouble));
+				assertThat(config.doubleCharacter()).as("property has wrong value").isCloseTo(64, within(deltaDouble));
+				assertThat(config.doubleByte()).as("property has wrong value").isCloseTo(2, within(deltaDouble));
+				assertThat(config.doubleShort()).as("property has wrong value").isCloseTo(1034, within(deltaDouble));
+				assertThat(config.doubleInteger()).as("property has wrong value").isCloseTo(123456, within(deltaDouble));
+				assertThat(config.doubleLong()).as("property has wrong value").isCloseTo(9876543210L, within(deltaDouble));
+				assertThat(config.doubleFloat()).as("property has wrong value").isCloseTo(3.14F, within(deltaDouble));
+				assertThat(config.doubleDouble()).as("property has wrong value").isCloseTo(2.1D, within(deltaDouble));
+				assertThat(config.doubleCollection()).as("property has wrong value").isCloseTo(64.3D, within(deltaDouble));
+				assertThat(config.doubleArray()).as("property has wrong value").isCloseTo(1D, within(deltaDouble));
+				assertThat(config.doubleNone()).as("property has wrong value").isCloseTo(0D, within(deltaDouble));
 
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.classBoolean());
+					assertThat(config.classBoolean()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.classCharacter());
+					assertThat(config.classCharacter()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.classByte());
+					assertThat(config.classByte()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.classShort());
+					assertThat(config.classShort()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.classInteger());
+					assertThat(config.classInteger()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.classLong());
+					assertThat(config.classLong()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.classFloat());
+					assertThat(config.classFloat()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.classDouble());
+					assertThat(config.classDouble()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
-				assertSame("property has wrong value", Coercion.class, config.classCollection());
-				assertSame("property has wrong value", p.getClass(), config.classArray());
-				assertNull("property has wrong value", config.classNone());
+				assertThat(config.classCollection()).as("property has wrong value").isSameAs(Coercion.class);
+				assertThat(config.classArray()).as("property has wrong value").isSameAs(p.getClass());
+				assertThat(config.classNone()).as("property has wrong value").isNull();
 
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.enumBoolean());
+					assertThat(config.enumBoolean()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.enumCharacter());
+					assertThat(config.enumCharacter()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.enumByte());
+					assertThat(config.enumByte()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.enumShort());
+					assertThat(config.enumShort()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.enumInteger());
+					assertThat(config.enumInteger()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.enumLong());
+					assertThat(config.enumLong()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.enumFloat());
+					assertThat(config.enumFloat()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
 				try {
-					assertEquals("did not throw Exception", ComponentException.class, config.enumDouble());
+					assertThat(config.enumDouble()).as("did not throw Exception").isEqualTo(ComponentException.class);
 				} catch (ComponentException e) {
 					// expected
 				}
-				assertSame("property has wrong value", TestEnum.ITEM1, config.enumCollection());
-				assertSame("property has wrong value", TestEnum.AnotherItem, config.enumArray());
-				assertNull("property has wrong value", config.enumNone());
+				assertThat(config.enumCollection()).as("property has wrong value").isSameAs(TestEnum.ITEM1);
+				assertThat(config.enumArray()).as("property has wrong value").isSameAs(TestEnum.AnotherItem);
+				assertThat(config.enumNone()).as("property has wrong value").isNull();
 
-				assertNotNull("array null", config.string$$String());
-				assertEquals("array wrong length", 1, config.string$$String().length);
-				assertEquals("property has wrong value", "xml/stringString", config.string$$String()[0]);
-				assertNotNull("array null", config.boolean$$Boolean());
-				assertEquals("array wrong length", 1, config.boolean$$Boolean().length);
-				assertTrue("property has wrong value", config.boolean$$Boolean()[0]);
-				assertNotNull("array null", config.char$$Character());
-				assertEquals("array wrong length", 1, config.char$$Character().length);
-				assertEquals("property has wrong value", '@', config.char$$Character()[0]);
-				assertNotNull("array null", config.byte$$Byte());
-				assertEquals("array wrong length", 1, config.byte$$Byte().length);
-				assertEquals("property has wrong value", (byte) 2, config.byte$$Byte()[0]);
-				assertNotNull("array null", config.short$$Short());
-				assertEquals("array wrong length", 1, config.short$$Short().length);
-				assertEquals("property has wrong value", (short) 1034, config.short$$Short()[0]);
-				assertNotNull("array null", config.int$$Integer());
-				assertEquals("array wrong length", 1, config.int$$Integer().length);
-				assertEquals("property has wrong value", 123456, config.int$$Integer()[0]);
-				assertNotNull("array null", config.long$$Long());
-				assertEquals("array wrong length", 1, config.long$$Long().length);
-				assertEquals("property has wrong value", 9876543210L, config.long$$Long()[0]);
-				assertNotNull("array null", config.float$$Float());
-				assertEquals("array wrong length", 1, config.float$$Float().length);
-				assertEquals("property has wrong value", 3.14F, config.float$$Float()[0], deltaFloat);
-				assertNotNull("array null", config.double$$Double());
-				assertEquals("array wrong length", 1, config.double$$Double().length);
-				assertEquals("property has wrong value", 2.1D, config.double$$Double()[0], deltaDouble);
-				assertNotNull("array null", config.int$$Collection());
-				assertEquals("array wrong length", 2, config.int$$Collection().length);
-				assertEquals("property has wrong value", 64, config.int$$Collection()[0]);
-				assertEquals("property has wrong value", 0, config.int$$Collection()[1]);
-				assertNotNull("array null", config.long$$Array());
-				assertEquals("array wrong length", 2, config.long$$Array().length);
-				assertEquals("property has wrong value", 9876543210L, config.long$$Array()[0]);
-				assertEquals("property has wrong value", 123456L, config.long$$Array()[1]);
+				assertThat(config.string$$String()).as("array null").isNotNull();
+				assertThat(config.string$$String().length).as("array wrong length").isOne();
+				assertThat(config.string$$String()[0]).as("property has wrong value").isEqualTo("xml/stringString");
+				assertThat(config.boolean$$Boolean()).as("array null").isNotNull();
+				assertThat(config.boolean$$Boolean().length).as("array wrong length").isOne();
+				assertThat(config.boolean$$Boolean()[0]).as("property has wrong value").isTrue();
+				assertThat(config.char$$Character()).as("array null").isNotNull();
+				assertThat(config.char$$Character().length).as("array wrong length").isOne();
+				assertThat(config.char$$Character()[0]).as("property has wrong value").isEqualTo('@');
+				assertThat(config.byte$$Byte()).as("array null").isNotNull();
+				assertThat(config.byte$$Byte().length).as("array wrong length").isOne();
+				assertThat(config.byte$$Byte()[0]).as("property has wrong value").isEqualTo((byte) 2);
+				assertThat(config.short$$Short()).as("array null").isNotNull();
+				assertThat(config.short$$Short().length).as("array wrong length").isOne();
+				assertThat(config.short$$Short()[0]).as("property has wrong value").isEqualTo((short) 1034);
+				assertThat(config.int$$Integer()).as("array null").isNotNull();
+				assertThat(config.int$$Integer().length).as("array wrong length").isOne();
+				assertThat(config.int$$Integer()[0]).as("property has wrong value").isEqualTo(123456);
+				assertThat(config.long$$Long()).as("array null").isNotNull();
+				assertThat(config.long$$Long().length).as("array wrong length").isOne();
+				assertThat(config.long$$Long()[0]).as("property has wrong value").isEqualTo(9876543210L);
+				assertThat(config.float$$Float()).as("array null").isNotNull();
+				assertThat(config.float$$Float().length).as("array wrong length").isOne();
+				assertThat(config.float$$Float()[0]).as("property has wrong value").isCloseTo(3.14F, within(deltaFloat));
+				assertThat(config.double$$Double()).as("array null").isNotNull();
+				assertThat(config.double$$Double().length).as("array wrong length").isOne();
+				assertThat(config.double$$Double()[0]).as("property has wrong value").isCloseTo(2.1D, within(deltaDouble));
+				assertThat(config.int$$Collection()).as("array null").isNotNull();
+				assertThat(config.int$$Collection().length).as("array wrong length").isEqualTo(2);
+				assertThat(config.int$$Collection()[0]).as("property has wrong value").isEqualTo(64);
+				assertThat(config.int$$Collection()[1]).as("property has wrong value").isZero();
+				assertThat(config.long$$Array()).as("array null").isNotNull();
+				assertThat(config.long$$Array().length).as("array wrong length").isEqualTo(2);
+				assertThat(config.long$$Array()[0]).as("property has wrong value").isEqualTo(9876543210L);
+				assertThat(config.long$$Array()[1]).as("property has wrong value").isEqualTo(123456L);
 				// this changed in 1.4 (R7) - while it has to be null in 1.3 it must be an empty array in 1.4:
-				assertNotNull("array null", config.string$$None());
-				assertEquals("array wrong length", 0, config.string$$None().length);
+				assertThat(config.string$$None()).as("array null").isNotNull();
+				assertThat(config.string$$None().length).as("array wrong length").isZero();
 
 			} finally {
 				providerTracker.close();

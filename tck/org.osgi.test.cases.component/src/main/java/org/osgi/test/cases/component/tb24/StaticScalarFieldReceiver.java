@@ -19,14 +19,15 @@
 
 package org.osgi.test.cases.component.tb24;
 
-import java.util.Map;
+import static org.mockito.Mockito.mock;
+
 import java.util.Map.Entry;
+import java.util.Map;
 
 import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.ComponentServiceObjects;
 import org.osgi.test.cases.component.service.BaseService;
 import org.osgi.test.cases.component.service.ScalarFieldTestService;
-import org.osgi.test.support.mock.MockFactory;
 
 public class StaticScalarFieldReceiver extends AbstractFieldReceiver implements ScalarFieldTestService<BaseService> {
 	private BaseService									service;
@@ -38,12 +39,12 @@ public class StaticScalarFieldReceiver extends AbstractFieldReceiver implements 
 	
 	@SuppressWarnings("unchecked")
 	public StaticScalarFieldReceiver() {
-		service = MockFactory.newMock(BaseService.class, null);
+		service = mock(BaseService.class);
 		assignable = new Object();
-		reference = MockFactory.newMock(ServiceReference.class, null);
-		serviceobjects = MockFactory.newMock(ComponentServiceObjects.class, null);
-		properties = MockFactory.newMock(Map.class, null);
-		tuple = MockFactory.newMock(Map.Entry.class, null);
+		reference = mock(ServiceReference.class);
+		serviceobjects = mock(ComponentServiceObjects.class);
+		properties = mock(Map.class);
+		tuple = mock(Map.Entry.class);
 	}
 
 	public BaseService getService() {

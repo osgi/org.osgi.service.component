@@ -23,15 +23,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.osgi.test.cases.component.junit.DTOUtil.newBundleDTO;
 import static org.osgi.test.cases.component.junit.DTOUtil.newComponentDescriptionDTO;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Dictionary;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.osgi.framework.Bundle;
+import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.Filter;
 import org.osgi.framework.ServiceReference;
@@ -57,13 +59,27 @@ import org.osgi.service.log.Logger;
 import org.osgi.test.assertj.dictionary.DictionaryAssert;
 import org.osgi.test.cases.component.service.BaseService;
 import org.osgi.test.cases.component.service.ObjectProvider1;
+import org.osgi.test.common.annotation.InjectAwaitCalm;
+import org.osgi.test.common.annotation.InjectBundleContext;
+import org.osgi.test.common.annotation.InjectBundleInstaller;
+import org.osgi.test.common.await.AwaitCalm;
+import org.osgi.test.common.await.AwaitCalmTimeoutException;
 import org.osgi.test.common.dictionary.Dictionaries;
-import org.osgi.test.support.junit4.AbstractOSGiTestCase;
-import org.osgi.test.support.sleep.Sleep;
-import org.osgi.test.support.tracker.Tracker;
+import org.osgi.test.common.install.BundleInstaller;
 import org.osgi.util.tracker.ServiceTracker;
 
-public class DS14TestCase extends AbstractOSGiTestCase {
+public class DS14TestCase {
+	static final long		SETTLE_QUIET_MILLIS	= 300;
+
+	@InjectAwaitCalm
+	AwaitCalm				awaitCalm;
+
+	@InjectBundleContext
+	BundleContext		context;
+
+	@InjectBundleInstaller
+	BundleInstaller		installer;
+
 	private static int														SLEEP			= 1000;
 	private static final String												TEST_CASE_ROOT	= "org.osgi.test.cases.component";
 	private ServiceTracker<ServiceComponentRuntime,ServiceComponentRuntime>	scrTracker;
@@ -73,15 +89,15 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 
 	private LogListener														ll;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		scrTracker = new ServiceTracker<ServiceComponentRuntime,ServiceComponentRuntime>(
-				getContext(), ServiceComponentRuntime.class, null);
+				context, ServiceComponentRuntime.class, null);
 		scrTracker.open();
 		lrTracker = new ServiceTracker<LogReaderService,LogReaderService>(
-				getContext(), LogReaderService.class, null);
+				context, LogReaderService.class, null);
 		lrTracker.open();
-		LogReaderService lr = Tracker.waitForService(lrTracker, SLEEP);
+		LogReaderService lr = lrTracker.waitForService(SLEEP);
 		if (lr != null) {
 			ll = new LogListener() {
 				@Override
@@ -101,20 +117,20 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 			lr.addLogListener(ll);
 		}
 		cmTracker = new ServiceTracker<ConfigurationAdmin,ConfigurationAdmin>(
-				getContext(), ConfigurationAdmin.class, null);
+				context, ConfigurationAdmin.class, null);
 		cmTracker.open();
 		clearConfigurations();
 		coordinatorTracker = new ServiceTracker<Coordinator,Coordinator>(
-				getContext(), Coordinator.class, null);
+				context, Coordinator.class, null);
 		coordinatorTracker.open();
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() throws Exception {
 		coordinatorTracker.close();
 		clearConfigurations();
 		cmTracker.close();
-		LogReaderService lr = Tracker.waitForService(lrTracker, SLEEP);
+		LogReaderService lr = lrTracker.waitForService(SLEEP);
 		if (lr != null) {
 			lr.removeLogListener(ll);
 		}
@@ -126,7 +142,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 	 * This methods takes care of the configurations related to this test
 	 */
 	private void clearConfigurations() throws Exception {
-		ConfigurationAdmin cm = Tracker.waitForService(cmTracker, SLEEP);
+		ConfigurationAdmin cm = cmTracker.waitForService(SLEEP);
 		assertThat(cm).as("The ConfigurationAdmin should be available")
 				.isNotNull();
 		// clean configurations from previous tests
@@ -135,7 +151,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		// clean configs for named service
 		clearConfiguration(cm, "(service.pid=" + TEST_CASE_ROOT + "*)");
 
-		Sleep.sleep(SLEEP * 2);
+		settle(SLEEP * 2);
 	}
 
 	private void clearConfiguration(ConfigurationAdmin cm, String filter)
@@ -150,24 +166,23 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 	@Test
 	public void testComponentFactoryProperty() throws Exception {
 		final String NAMED_CLASS = TEST_CASE_ROOT + ".tb4a.NamedService";
-		Bundle tb4a = install("tb4a.jar");
+		Bundle tb4a = installer.installBundle("tb4a.jar", false);
 		try {
-			Filter filter = getContext()
+			Filter filter = context
 					.createFilter("(&(" + ComponentConstants.COMPONENT_FACTORY
 							+ '=' + NAMED_CLASS + ")(" + Constants.OBJECTCLASS
 							+ '=' + ComponentFactory.class.getName()
 							+ ")(factory.id=foo)(factory.properties=found))");
 			ServiceTracker<ComponentFactory<Object>,ComponentFactory<Object>> factoryTracker = new ServiceTracker<>(
-					getContext(), filter, null);
+					context, filter, null);
 
 			try {
 				factoryTracker.open();
-				assertThat(factoryTracker.getTrackingCount()).isEqualTo(0);
+				assertThat(factoryTracker.getTrackingCount()).isZero();
 				tb4a.start();
-				ComponentFactory<Object> factory = Tracker
-						.waitForService(factoryTracker, SLEEP);
+				ComponentFactory<Object> factory = factoryTracker.waitForService(SLEEP);
 				assertThat(factory).as("ComponentFactory service").isNotNull();
-				assertThat(factoryTracker.getTrackingCount()).isEqualTo(1);
+				assertThat(factoryTracker.getTrackingCount()).isOne();
 				DictionaryAssert
 						.assertThat(factoryTracker.getServiceReference()
 								.getProperties())
@@ -177,19 +192,19 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 								.containsEntry("factory.id", "foo")
 								.containsEntry("factory.properties", "found");
 				ServiceTracker<Object,Object> tracker = new ServiceTracker<>(
-						getContext(), NAMED_CLASS, null);
+						context, NAMED_CLASS, null);
 				try {
 					tracker.open();
 					// create the first service
 					Dictionary<String,String> props = Dictionaries
 							.dictionaryOf("name", "hello");
 
-					assertThat(tracker.getTrackingCount()).isEqualTo(0);
+					assertThat(tracker.getTrackingCount()).isZero();
 					ComponentInstance<Object> instance = factory
 							.newInstance(props);
 					try {
-						Tracker.waitForService(tracker, SLEEP);
-						assertThat(tracker.getTrackingCount()).isEqualTo(1);
+						tracker.waitForService(SLEEP);
+						assertThat(tracker.getTrackingCount()).isOne();
 						DictionaryAssert
 								.assertThat(tracker.getServiceReference()
 										.getProperties())
@@ -224,7 +239,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		ServiceComponentRuntime scr = scrTracker.getService();
 		assertThat(scr).as("failed to find ServiceComponentRuntime service")
 				.isNotNull();
-		Bundle tb28 = install("tb28.jar");
+		Bundle tb28 = installer.installBundle("tb28.jar", false);
 		try {
 			tb28.start();
 			Collection<ComponentDescriptionDTO> descriptions = scr
@@ -274,7 +289,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		ServiceComponentRuntime scr = scrTracker.getService();
 		assertThat(scr).as("failed to find ServiceComponentRuntime service")
 				.isNotNull();
-		Bundle tb27 = install("tb27.jar");
+		Bundle tb27 = installer.installBundle("tb27.jar", false);
 		try {
 			tb27.start();
 			Collection<ComponentDescriptionDTO> descriptions = scr
@@ -292,10 +307,10 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 			assertThat(configuration1.state)
 					.isEqualTo(ComponentConfigurationDTO.SATISFIED);
 			ServiceTracker<Object,Object> tracker = new ServiceTracker<>(
-					getContext(), NAMED_CLASS, null);
+					context, NAMED_CLASS, null);
 			try {
 				tracker.open();
-				Object service = Tracker.waitForService(tracker, SLEEP);
+				Object service = tracker.waitForService(SLEEP);
 				configurations = scr
 						.getComponentConfigurationDTOs(description1);
 				assertThat(configurations).hasSize(1);
@@ -319,7 +334,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 
 	@Test
 	public void testFailedActivation() throws Exception {
-		Filter providerFilter = getContext().createFilter("(&("
+		Filter providerFilter = context.createFilter("(&("
 				+ Constants.OBJECTCLASS + "=" + ObjectProvider1.class.getName()
 				+ ")(" + ComponentConstants.COMPONENT_NAME
 				+ "=org.osgi.test.cases.component.tb28.FailedActivation))");
@@ -327,7 +342,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		ServiceComponentRuntime scr = scrTracker.getService();
 		assertThat(scr).as("failed to find ServiceComponentRuntime service")
 				.isNotNull();
-		Bundle tb28 = install("tb28.jar");
+		Bundle tb28 = installer.installBundle("tb28.jar", false);
 		try {
 			tb28.start();
 			Collection<ComponentDescriptionDTO> descriptions = scr
@@ -345,10 +360,10 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 			assertThat(configuration1.state)
 					.isEqualTo(ComponentConfigurationDTO.SATISFIED);
 			ServiceTracker<ObjectProvider1<Object>,ObjectProvider1<Object>> tracker = new ServiceTracker<>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				tracker.open();
-				Object service = Tracker.waitForService(tracker, SLEEP);
+				Object service = tracker.waitForService(SLEEP);
 				assertThat(service).isNull();
 				configurations = scr
 						.getComponentConfigurationDTOs(description1);
@@ -370,7 +385,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 
 	@Test
 	public void testLoggerComponent() throws Exception {
-		Filter providerFilter = getContext().createFilter("(&("
+		Filter providerFilter = context.createFilter("(&("
 				+ Constants.OBJECTCLASS + "=" + ObjectProvider1.class.getName()
 				+ ")(" + ComponentConstants.COMPONENT_NAME
 				+ "=org.osgi.test.cases.component.tb29.LoggerComponent))");
@@ -378,7 +393,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		ServiceComponentRuntime scr = scrTracker.getService();
 		assertThat(scr).as("failed to find ServiceComponentRuntime service")
 				.isNotNull();
-		Bundle tb29 = install("tb29.jar");
+		Bundle tb29 = installer.installBundle("tb29.jar", false);
 		try {
 			tb29.start();
 			Collection<ComponentDescriptionDTO> descriptions = scr
@@ -400,11 +415,10 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 			assertThat(tb29SRs).as("tb29 registered services").hasSize(1);
 
 			ServiceTracker<ObjectProvider1<Logger>,ObjectProvider1<Logger>> tracker = new ServiceTracker<>(
-					getContext(), providerFilter, null);
+					context, providerFilter, null);
 			try {
 				tracker.open();
-				ObjectProvider1<Logger> service = Tracker
-						.waitForService(tracker, SLEEP);
+				ObjectProvider1<Logger> service = tracker.waitForService(SLEEP);
 				configurations = scr
 						.getComponentConfigurationDTOs(description1);
 				assertThat(configurations).hasSize(1);
@@ -424,7 +438,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 
 	@Test
 	public void testConfigurationPlugin() throws Exception {
-		ConfigurationAdmin cm = Tracker.waitForService(cmTracker, SLEEP);
+		ConfigurationAdmin cm = cmTracker.waitForService(SLEEP);
 		assertThat(cm).as("The ConfigurationAdmin should be available")
 				.isNotNull();
 
@@ -434,10 +448,10 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		Configuration config = cm.getConfiguration(PID, null);
 		config.update(Dictionaries.dictionaryOf(PID_ROOT, "config"));
 
-		final Bundle tb23 = install("tb23.jar");
+		final Bundle tb23 = installer.installBundle("tb23.jar", false);
 		try {
 			final AtomicReference<Bundle> msBundle = new AtomicReference<>();
-			ServiceRegistration<ConfigurationPlugin> reg = getContext()
+			ServiceRegistration<ConfigurationPlugin> reg = context
 					.registerService(ConfigurationPlugin.class,
 							new ConfigurationPlugin() {
 								@Override
@@ -456,16 +470,15 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 			try {
 				tb23.start();
 
-				Filter base1Filter = getContext().createFilter("(&("
+				Filter base1Filter = context.createFilter("(&("
 						+ Constants.OBJECTCLASS + "="
 						+ BaseService.class.getName() + ")("
 						+ ComponentConstants.COMPONENT_NAME + "=" + PID + "))");
 				ServiceTracker<BaseService,BaseService> base1Tracker = new ServiceTracker<BaseService,BaseService>(
-						getContext(), base1Filter, null);
+						context, base1Filter, null);
 				try {
 					base1Tracker.open();
-					BaseService b1 = Tracker.waitForService(base1Tracker,
-							SLEEP * 3);
+					BaseService b1 = base1Tracker.waitForService(SLEEP * 3);
 					assertThat(b1).as("missing base1").isNotNull();
 					assertThat(msBundle).as(
 							"configuration plugin called using MS from component bundle")
@@ -488,7 +501,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 
 	@Test
 	public void testCoordinationEnded() throws Exception {
-		ConfigurationAdmin cm = Tracker.waitForService(cmTracker, SLEEP);
+		ConfigurationAdmin cm = cmTracker.waitForService(SLEEP);
 		assertThat(cm).as("The ConfigurationAdmin should be available")
 				.isNotNull();
 
@@ -498,33 +511,31 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		Configuration config = cm.getConfiguration(PID, null);
 		config.update(Dictionaries.dictionaryOf(PID_ROOT, "config"));
 
-		final Bundle tb23 = install("tb23.jar");
+		final Bundle tb23 = installer.installBundle("tb23.jar", false);
 		try {
 			tb23.start();
 
-			Filter base1Filter = getContext().createFilter("(&("
+			Filter base1Filter = context.createFilter("(&("
 					+ Constants.OBJECTCLASS + "=" + BaseService.class.getName()
 					+ ")(" + ComponentConstants.COMPONENT_NAME + "=" + PID
 					+ "))");
 			ServiceTracker<BaseService,BaseService> base1Tracker = new ServiceTracker<BaseService,BaseService>(
-					getContext(), base1Filter, null);
+					context, base1Filter, null);
 			try {
 				base1Tracker.open();
-				BaseService b1 = Tracker.waitForService(base1Tracker,
-						SLEEP * 3);
+				BaseService b1 = base1Tracker.waitForService(SLEEP * 3);
 				assertThat(b1).as("missing base1").isNotNull();
 				Dictionary<String,Object> componentProps = b1.getProperties();
 				DictionaryAssert.assertThat(componentProps)
 						.containsEntry(PID_ROOT, "config")
 						.containsEntry(Constants.SERVICE_PID, PID);
 
-				Coordinator coordinator = Tracker
-						.waitForService(coordinatorTracker, SLEEP);
+				Coordinator coordinator = coordinatorTracker.waitForService(SLEEP);
 				Coordination coordination = coordinator.begin("ds-test", 0);
 				try {
 					config.update(
 							Dictionaries.dictionaryOf(PID_ROOT, "updated"));
-					Sleep.sleep(SLEEP * 4);
+					settle(SLEEP * 4);
 					componentProps = b1.getProperties();
 					DictionaryAssert.assertThat(componentProps)
 							.containsEntry(PID_ROOT, "config")
@@ -534,7 +545,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 				}
 				System.out.println("coordination ended");
 
-				Sleep.sleep(SLEEP * 2);
+				settle(SLEEP * 2);
 				componentProps = b1.getProperties();
 				DictionaryAssert.assertThat(componentProps)
 						.containsEntry(PID_ROOT, "updated")
@@ -550,7 +561,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 
 	@Test
 	public void testCoordinationFailed() throws Exception {
-		ConfigurationAdmin cm = Tracker.waitForService(cmTracker, SLEEP);
+		ConfigurationAdmin cm = cmTracker.waitForService(SLEEP);
 		assertThat(cm).as("The ConfigurationAdmin should be available")
 				.isNotNull();
 
@@ -560,33 +571,31 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		Configuration config = cm.getConfiguration(PID, null);
 		config.update(Dictionaries.dictionaryOf(PID_ROOT, "config"));
 
-		final Bundle tb23 = install("tb23.jar");
+		final Bundle tb23 = installer.installBundle("tb23.jar", false);
 		try {
 			tb23.start();
 
-			Filter base1Filter = getContext().createFilter("(&("
+			Filter base1Filter = context.createFilter("(&("
 					+ Constants.OBJECTCLASS + "=" + BaseService.class.getName()
 					+ ")(" + ComponentConstants.COMPONENT_NAME + "=" + PID
 					+ "))");
 			ServiceTracker<BaseService,BaseService> base1Tracker = new ServiceTracker<BaseService,BaseService>(
-					getContext(), base1Filter, null);
+					context, base1Filter, null);
 			try {
 				base1Tracker.open();
-				BaseService b1 = Tracker.waitForService(base1Tracker,
-						SLEEP * 3);
+				BaseService b1 = base1Tracker.waitForService(SLEEP * 3);
 				assertThat(b1).as("missing base1").isNotNull();
 				Dictionary<String,Object> componentProps = b1.getProperties();
 				DictionaryAssert.assertThat(componentProps)
 						.containsEntry(PID_ROOT, "config")
 						.containsEntry(Constants.SERVICE_PID, PID);
 
-				Coordinator coordinator = Tracker
-						.waitForService(coordinatorTracker, SLEEP);
+				Coordinator coordinator = coordinatorTracker.waitForService(SLEEP);
 				Coordination coordination = coordinator.begin("ds-test", 0);
 				try {
 					config.update(
 							Dictionaries.dictionaryOf(PID_ROOT, "updated"));
-					Sleep.sleep(SLEEP * 4);
+					settle(SLEEP * 4);
 					componentProps = b1.getProperties();
 					DictionaryAssert.assertThat(componentProps)
 							.containsEntry(PID_ROOT, "config")
@@ -602,7 +611,7 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 							.isInstanceOf(CoordinationException.class);
 				}
 
-				Sleep.sleep(SLEEP * 2);
+				settle(SLEEP * 2);
 				componentProps = b1.getProperties();
 				DictionaryAssert.assertThat(componentProps)
 						.containsEntry(PID_ROOT, "updated")
@@ -616,4 +625,18 @@ public class DS14TestCase extends AbstractOSGiTestCase {
 		}
 	}
 
+	/**
+	 * Waits for the framework to settle instead of sleeping a fixed time:
+	 * returns once no bundle or service event has arrived for
+	 * SETTLE_QUIET_MILLIS, and at the latest after maxMillis, as the former
+	 * sleep did.
+	 */
+	void settle(long maxMillis) throws InterruptedException {
+		Duration quiet = Duration.ofMillis(Math.min(SETTLE_QUIET_MILLIS, Math.max(1, maxMillis / 2)));
+		try {
+			awaitCalm.waitForQuiet(quiet, Duration.ofMillis(maxMillis));
+		} catch (AwaitCalmTimeoutException e) {
+			// still busy after maxMillis: go on, as the fixed sleep did
+		}
+	}
 }

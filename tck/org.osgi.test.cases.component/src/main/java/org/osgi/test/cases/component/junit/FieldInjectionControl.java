@@ -20,6 +20,7 @@ package org.osgi.test.cases.component.junit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Map;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -39,15 +40,17 @@ import org.osgi.test.assertj.dictionary.DictionaryAssert;
 import org.osgi.test.assertj.dictionary.DictionarySoftAssertions;
 import org.osgi.test.cases.component.service.BaseService;
 import org.osgi.test.cases.component.service.TestObject;
+import org.osgi.test.common.annotation.InjectAwaitCalm;
 import org.osgi.test.common.annotation.InjectBundleContext;
 import org.osgi.test.common.annotation.InjectInstalledBundle;
 import org.osgi.test.common.annotation.InjectService;
+import org.osgi.test.common.await.AwaitCalm;
+import org.osgi.test.common.await.AwaitCalmTimeoutException;
 import org.osgi.test.common.dictionary.Dictionaries;
 import org.osgi.test.common.service.ServiceAware;
 import org.osgi.test.junit5.context.BundleContextExtension;
 import org.osgi.test.junit5.context.InstalledBundleExtension;
 import org.osgi.test.junit5.service.ServiceExtension;
-import org.osgi.test.support.sleep.Sleep;
 
 /**
  * This is the bundle initially installed and started by the TestCase. It
@@ -61,6 +64,11 @@ import org.osgi.test.support.sleep.Sleep;
 @ExtendWith(InstalledBundleExtension.class)
 @ExtendWith(ServiceExtension.class)
 public class FieldInjectionControl {
+	static final long		SETTLE_QUIET_MILLIS	= 300;
+
+	@InjectAwaitCalm
+	AwaitCalm				awaitCalm;
+
 
 	private int					SLEEP	= 1000;
 
@@ -121,7 +129,7 @@ public class FieldInjectionControl {
 
 		registration.unregister();
 
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		assertThat(bs.size()).isZero();
 	}
@@ -149,7 +157,7 @@ public class FieldInjectionControl {
 		// register ref and wait
 		ServiceRegistration<TestObject> registration = context
 				.registerService(TestObject.class, service, null);
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		bs.waitForService(SLEEP);
 
@@ -160,7 +168,7 @@ public class FieldInjectionControl {
 		// unregister ref again and wait
 		registration.unregister();
 
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		assertThat(bs.getService()).isNotNull();
 		DictionaryAssert.assertThat(bs.getService().getProperties())
@@ -303,7 +311,7 @@ public class FieldInjectionControl {
 
 		registration.unregister();
 
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		assertThat(bs.size()).isZero();
 	}
@@ -344,7 +352,7 @@ public class FieldInjectionControl {
 				.dictionaryOf(Constants.SERVICE_RANKING, Integer.valueOf(10)));
 
 		// unfortunately there is no event we can wait for
-		Sleep.sleep(SLEEP);
+		settle(SLEEP);
 
 		softly.check(() -> {
 			DictionaryAssert.assertThat(bs.getService().getProperties())
@@ -353,5 +361,19 @@ public class FieldInjectionControl {
 							InstanceOfAssertFactories.list(TestObject.class))
 					.containsExactly(service1, service2, service3);
 		});
+	}
+	/**
+	 * Waits for the framework to settle instead of sleeping a fixed time:
+	 * returns once no bundle or service event has arrived for
+	 * SETTLE_QUIET_MILLIS, and at the latest after maxMillis, as the former
+	 * sleep did.
+	 */
+	void settle(long maxMillis) throws InterruptedException {
+		Duration quiet = Duration.ofMillis(Math.min(SETTLE_QUIET_MILLIS, Math.max(1, maxMillis / 2)));
+		try {
+			awaitCalm.waitForQuiet(quiet, Duration.ofMillis(maxMillis));
+		} catch (AwaitCalmTimeoutException e) {
+			// still busy after maxMillis: go on, as the fixed sleep did
+		}
 	}
 }

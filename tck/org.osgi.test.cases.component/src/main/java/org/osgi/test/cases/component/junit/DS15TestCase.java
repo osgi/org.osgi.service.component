@@ -21,6 +21,7 @@ package org.osgi.test.cases.component.junit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -50,21 +51,28 @@ import org.osgi.test.assertj.dictionary.DictionaryAssert;
 import org.osgi.test.assertj.dictionary.DictionarySoftAssertions;
 import org.osgi.test.cases.component.service.BaseService;
 import org.osgi.test.cases.component.service.TestObject;
+import org.osgi.test.common.annotation.InjectAwaitCalm;
 import org.osgi.test.common.annotation.InjectBundleContext;
 import org.osgi.test.common.annotation.InjectInstalledBundle;
 import org.osgi.test.common.annotation.InjectService;
+import org.osgi.test.common.await.AwaitCalm;
+import org.osgi.test.common.await.AwaitCalmTimeoutException;
 import org.osgi.test.common.dictionary.Dictionaries;
 import org.osgi.test.common.service.ServiceAware;
 import org.osgi.test.junit5.context.BundleContextExtension;
 import org.osgi.test.junit5.context.InstalledBundleExtension;
 import org.osgi.test.junit5.service.ServiceExtension;
-import org.osgi.test.support.sleep.Sleep;
 
 @ExtendWith(SoftAssertionsExtension.class)
 @ExtendWith(BundleContextExtension.class)
 @ExtendWith(InstalledBundleExtension.class)
 @ExtendWith(ServiceExtension.class)
 public class DS15TestCase {
+	static final long		SETTLE_QUIET_MILLIS	= 300;
+
+	@InjectAwaitCalm
+	AwaitCalm				awaitCalm;
+
 	private int					SLEEP	= 1000;
 
 	@InjectBundleContext
@@ -128,7 +136,7 @@ public class DS15TestCase {
 
 		registration.unregister();
 
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		softly.assertThat(bs.size()).isZero();
 	}
@@ -156,7 +164,7 @@ public class DS15TestCase {
 
 		registration.unregister();
 
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		assertThat(bs.getService()).isNotNull();
 		softly.assertThat(bs.getService().getProperties())
@@ -189,7 +197,7 @@ public class DS15TestCase {
 
 		registration.unregister();
 
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		softly.assertThat(bs.size()).isZero();
 	}
@@ -217,7 +225,7 @@ public class DS15TestCase {
 
 		registration.unregister();
 
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		assertThat(bs.getService()).isNotNull();
 		softly.assertThat(bs.getService().getProperties())
@@ -304,8 +312,7 @@ public class DS15TestCase {
 							InstanceOfAssertFactories
 									.optional(ServiceReference.class))
 					.containsInstanceOf(ServiceReference.class)
-					.map(sr -> sr.getProperty("testName"))
-					.contains(testName);
+					.map(sr -> sr.getProperty("testName")).hasValue(testName);
 		});
 		softly.check(() -> {
 			assertion
@@ -314,8 +321,7 @@ public class DS15TestCase {
 									.optional(ComponentServiceObjects.class))
 					.containsInstanceOf(ComponentServiceObjects.class)
 					.map(ComponentServiceObjects::getServiceReference)
-					.map(sr -> sr.getProperty("testName"))
-					.contains(testName);
+					.map(sr -> sr.getProperty("testName")).hasValue(testName);
 		});
 		softly.check(() -> {
 			assertion
@@ -360,8 +366,7 @@ public class DS15TestCase {
 							InstanceOfAssertFactories
 									.optional(ServiceReference.class))
 					.containsInstanceOf(ServiceReference.class)
-					.map(sr -> sr.getProperty("testName"))
-					.contains(testName);
+					.map(sr -> sr.getProperty("testName")).hasValue(testName);
 		});
 		softly.check(() -> {
 			assertion
@@ -370,8 +375,7 @@ public class DS15TestCase {
 									.optional(ComponentServiceObjects.class))
 					.containsInstanceOf(ComponentServiceObjects.class)
 					.map(ComponentServiceObjects::getServiceReference)
-					.map(sr -> sr.getProperty("testName"))
-					.contains(testName);
+					.map(sr -> sr.getProperty("testName")).hasValue(testName);
 		});
 		softly.check(() -> {
 			assertion
@@ -530,8 +534,7 @@ public class DS15TestCase {
 							InstanceOfAssertFactories
 									.optional(ServiceReference.class))
 					.containsInstanceOf(ServiceReference.class)
-					.map(sr -> sr.getProperty("testName"))
-					.contains(testName);
+					.map(sr -> sr.getProperty("testName")).hasValue(testName);
 		});
 		softly.check(() -> {
 			assertion
@@ -540,8 +543,7 @@ public class DS15TestCase {
 									.optional(ComponentServiceObjects.class))
 					.containsInstanceOf(ComponentServiceObjects.class)
 					.map(ComponentServiceObjects::getServiceReference)
-					.map(sr -> sr.getProperty("testName"))
-					.contains(testName);
+					.map(sr -> sr.getProperty("testName")).hasValue(testName);
 		});
 		softly.check(() -> {
 			assertion
@@ -587,8 +589,7 @@ public class DS15TestCase {
 							InstanceOfAssertFactories
 									.optional(ServiceReference.class))
 					.containsInstanceOf(ServiceReference.class)
-					.map(sr -> sr.getProperty("testName"))
-					.contains(testName);
+					.map(sr -> sr.getProperty("testName")).hasValue(testName);
 		});
 		softly.check(() -> {
 			assertion
@@ -597,8 +598,7 @@ public class DS15TestCase {
 									.optional(ComponentServiceObjects.class))
 					.containsInstanceOf(ComponentServiceObjects.class)
 					.map(ComponentServiceObjects::getServiceReference)
-					.map(sr -> sr.getProperty("testName"))
-					.contains(testName);
+					.map(sr -> sr.getProperty("testName")).hasValue(testName);
 		});
 		softly.check(() -> {
 			assertion
@@ -794,7 +794,7 @@ public class DS15TestCase {
 
 		registration.unregister();
 
-		Sleep.sleep(SLEEP * 3);
+		settle(SLEEP * 3);
 
 		softly.assertThat(bs.size()).isZero();
 
@@ -819,5 +819,19 @@ public class DS15TestCase {
 			unsatisfied.extracting("target", String.class)
 					.containsOnly("(osgi.condition.id=" + testName + ")");
 		});
+	}
+	/**
+	 * Waits for the framework to settle instead of sleeping a fixed time:
+	 * returns once no bundle or service event has arrived for
+	 * SETTLE_QUIET_MILLIS, and at the latest after maxMillis, as the former
+	 * sleep did.
+	 */
+	void settle(long maxMillis) throws InterruptedException {
+		Duration quiet = Duration.ofMillis(Math.min(SETTLE_QUIET_MILLIS, Math.max(1, maxMillis / 2)));
+		try {
+			awaitCalm.waitForQuiet(quiet, Duration.ofMillis(maxMillis));
+		} catch (AwaitCalmTimeoutException e) {
+			// still busy after maxMillis: go on, as the fixed sleep did
+		}
 	}
 }
