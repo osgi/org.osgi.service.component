@@ -15,7 +15,7 @@ corrections are welcome — please open a pull request.
 
 | Project | Link | Notes |
 |---------|------|-------|
-| _none listed yet_ | | |
+| Apache Felix SCR | <https://github.com/apache/felix-dev/blob/master/scr/README.md> | Reference implementation. Supports DS 1.5 (OSGi R8); passes the OSGi CT for R7. |
 
 ## Build
 
