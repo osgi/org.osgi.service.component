@@ -123,8 +123,10 @@ public @interface Component {
 	 * 
 	 * <p>
 	 * If not specified, the default is {@code false} if the {@link #factory()}
-	 * property is specified or the {@link #service()} property is not specified
-	 * or specified with a non-empty value and {@code true} otherwise.
+	 * property is specified or if the component provides at least one service,
+	 * either through the {@link #service()} property or, when it is not
+	 * specified, through the directly implemented interfaces of the annotated
+	 * class. Otherwise, the default is {@code true}.
 	 * 
 	 * @see "The immediate attribute of the component element of a Component Description."
 	 */
