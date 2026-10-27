@@ -68,7 +68,10 @@ public @interface Reference {
 	 * name.</li>
 	 * <li>Annotated field - The name of the reference is the field name.</li>
 	 * <li>Annotated constructor parameter - The name of the reference is the
-	 * parameter name.</li>
+	 * parameter name. Parameter names are only available if the class was
+	 * compiled with parameter names retained, e.g. using the {@code javac}
+	 * {@code -parameters} option. Otherwise, the name must be specified
+	 * explicitly since a generated name is not suitable as a reference name.</li>
 	 * </ul>
 	 * 
 	 * @see "The name attribute of the reference element of a Component Description."

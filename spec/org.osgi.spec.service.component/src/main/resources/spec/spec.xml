@@ -404,9 +404,10 @@
       <para>An <emphasis>immediate component</emphasis> is activated as soon
       as its dependencies are satisfied. If an immediate component has no
       dependencies, it is activated immediately. A component is an immediate
-      component if it is not a factory component and either does not specify a
-      service or specifies a service and the <code>immediate</code> attribute
-      of the <code>component</code> element set to <code>true</code>. If an
+      component if it is not a factory component and one of the following
+      applies: it does not specify a service, or it specifies a service and
+      the <code>immediate</code> attribute of the <code>component</code>
+      element is set to <code>true</code>. If an
       immediate component configuration is satisfied and specifies a service,
       SCR must register the component configuration as a service in the
       service registry and then activate the component configuration.</para>
@@ -2000,7 +2001,10 @@ public class MyComponent {
       <para>SCR must process each XML document specified in this header. If an
       XML document specified by the header cannot be located in the bundle and
       its attached fragments, SCR must log an error message with the Log
-      Service, if present, and continue.</para>
+      Service, if present, and continue. This does not apply to a path that
+      contains a wildcard and matches no XML document, since a wildcard can
+      match any number of documents including none. In this case SCR must
+      continue and should not log an error.</para>
     </section>
 
     <section>
@@ -2155,9 +2159,9 @@ public class MyComponent {
               <entry><para>Controls whether component configurations must be
               immediately activated after becoming satisfied or whether
               activation should be delayed. The default value is
-              <code>false</code> if the <code>factory</code> attribute or if
-              the <code>service</code> element is specified and
-              <code>true</code> otherwise. If this attribute is specified, its
+              <code>false</code> if the <code>factory</code> attribute is
+              specified or if the <code>service</code> element is specified,
+              and <code>true</code> otherwise. If this attribute is specified, its
               value must be <code>false</code> if the <code>factory</code>
               attribute is also specified or must be <code>true</code> unless
               the <code>service</code> element is also
