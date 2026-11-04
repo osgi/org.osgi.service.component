@@ -134,7 +134,7 @@ public interface ComponentConstants {
 	 * 
 	 * <pre>
 	 * Require-Capability: osgi.extender;
-	 *  filter:="(&amp;(osgi.extender=osgi.component)(version&gt;=1.5)(!(version&gt;=2.0)))"
+	 *  filter:="(&amp;(osgi.extender=osgi.component)(version&gt;=1.6)(!(version&gt;=2.0)))"
 	 * </pre>
 	 * 
 	 * @since 1.3
@@ -151,7 +151,7 @@ public interface ComponentConstants {
 	 * 
 	 * @since 1.4
 	 */
-	public static final String	COMPONENT_SPECIFICATION_VERSION				= "1.5";
+	public static final String	COMPONENT_SPECIFICATION_VERSION				= "1.6";
 
 	/**
 	 * Reference name for a component's satisfying condition.
